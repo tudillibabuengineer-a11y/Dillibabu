@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Management System</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+        header {
+            background: #1f4e79;
+            color: white;
+            padding: 22px;
+            text-align: center;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+        h2 { margin-bottom: 18px; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+        button {
+            border: none;
+            padding: 12px 18px;
+            border-radius: 7px;
+            cursor: pointer;
+            font-size: 15px;
+            background: #1f4e79;
+            color: white;
+        }
+        button:hover { opacity: 0.9; }
+        .delete-btn { background: #c0392b; }
+        .edit-btn { background: #27ae60; margin-right: 5px; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border-bottom: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th { background: #eef3f7; }
+        .message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        @media (max-width: 700px) {
+            .form-grid { grid-template-columns: 1fr; }
+            table { font-size: 13px; }
+            .container { margin: 15px auto; padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Student Management System</h1>
+    <p>Java Full Stack Project - Frontend Demo</p>
+</header>
+
+<div class="container">
+
+    <div class="card">
+        <h2>Add Student</h2>
+
+        <form id="studentForm">
+            <div class="form-grid">
+                <input type="text" id="name" placeholder="Student Name" required>
+                <input type="email" id="email" placeholder="Email" required>
+                <input type="text" id="course" placeholder="Course" required>
+                <input type="number" id="age" placeholder="Age" min="1" required>
+            </div>
+
+            <br>
+            <button type="submit">Add Student</button>
+        </form>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <div class="card">
+        <h2>Student List</h2>
+
+        <input type="text" id="search" placeholder="Search student..." onkeyup="searchStudents()">
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Course</th>
+                    <th>Age</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="studentTable"></tbody>
+        </table>
+    </div>
+
+</div>
+
+<script>
+    let students = JSON.parse(localStorage.getItem("students")) || [];
+    let editId = null;
+
+    function displayStudents(list = students) {
+        const table = document.getElementById("studentTable");
+
+        if (list.length === 0) {
+            table.innerHTML = '<tr><td colspan="6">No students found</td></tr>';
+            return;
+        }
+
+        table.innerHTML = list.map(student => `
+            <tr>
+                <td>${student.id}</td>
+                <td>${student.name}</td>
+                <td>${student.email}</td>
+                <td>${student.course}</td>
+                <td>${student.age}</td>
+                <td>
+                    <button class="edit-btn" onclick="editStudent(${student.id})">Edit</button>
+                    <button class="delete-btn" onclick="deleteStudent(${student.id})">Delete</button>
+                </td>
+            </tr>
+        `).join("");
+    }
+
+    document.getElementById("studentForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const course = document.getElementById("course").value.trim();
+        const age = document.getElementById("age").value;
+
+        if (editId !== null) {
+            const student = students.find(s => s.id === editId);
+            student.name = name;
+            student.email = email;
+            student.course = course;
+            student.age = age;
+            editId = null;
+            showMessage("Student updated successfully!");
+        } else {
+            students.push({
+                id: students.length ? Math.max(...students.map(s => s.id)) + 1 : 1,
+                name,
+                email,
+                course,
+                age
+            });
+            showMessage("Student added successfully!");
+        }
+
+        localStorage.setItem("students", JSON.stringify(students));
+        this.reset();
+        displayStudents();
+    });
+
+    function editStudent(id) {
+        const student = students.find(s => s.id === id);
+
+        document.getElementById("name").value = student.name;
+        document.getElementById("email").value = student.email;
+        document.getElementById("course").value = student.course;
+        document.getElementById("age").value = student.age;
+
+        editId = id;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteStudent(id) {
+        if (confirm("Delete this student?")) {
+            students = students.filter(student => student.id !== id);
+            localStorage.setItem("students", JSON.stringify(students));
+            displayStudents();
+            showMessage("Student deleted successfully!");
+        }
+    }
+
+    function searchStudents() {
+        const value = document.getElementById("search").value.toLowerCase();
+
+        const filtered = students.filter(student =>
+            student.name.toLowerCase().includes(value) ||
+            student.email.toLowerCase().includes(value) ||
+            student.course.toLowerCase().includes(value)
+        );
+
+        displayStudents(filtered);
+    }
+
+    function showMessage(text) {
+        const message = document.getElementById("message");
+        message.textContent = text;
+
+        setTimeout(() => {
+            message.textContent = "";
+        }, 2500);
+    }
+
+    displayStudents();
+</script>
+
+</body>
+</html>
